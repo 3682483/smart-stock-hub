@@ -4,7 +4,7 @@ import {
   Package, MapPin, Users, Building2, LayoutDashboard,
   ShoppingCart, Truck, ClipboardList, BarChart3, Archive,
   ArrowDownToLine, ArrowUpFromLine, ScanLine, AlertTriangle,
-  ChevronDown, ChevronRight, Menu, X, Bell, Search
+  ChevronDown, ChevronRight, Menu, X, Bell, Search, DollarSign
 } from 'lucide-react';
 
 interface NavItem {
@@ -55,6 +55,7 @@ const navItems: NavItem[] = [
     ]
   },
   { label: '预警中心', icon: <AlertTriangle size={18} />, path: '/alerts' },
+  { label: '财务结算', icon: <DollarSign size={18} />, path: '/finance' },
 ];
 
 export default function WMSLayout({ children }: { children: React.ReactNode }) {

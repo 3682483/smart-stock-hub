@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx skills:*)",
+      "Bash(curl -s http://localhost:5173)",
+      "mcp__Playwright__browser_navigate",
+      "Bash(netstat -ano)",
+      "Bash(findstr \"5173\")"
+    ]
+  }
+}
