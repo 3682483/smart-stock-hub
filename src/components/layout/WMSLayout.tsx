@@ -87,7 +87,7 @@ export default function WMSLayout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-2 px-4 h-14 shrink-0" style={{ borderBottom: '1px solid hsl(var(--sidebar-border))' }}>
           <Package size={22} className="text-primary" />
           <span className="font-bold text-base" style={{ color: 'hsl(var(--sidebar-active-fg))' }}>
-            仓储管理系统
+            WMS+SCM
           </span>
         </div>
 
@@ -136,7 +136,7 @@ export default function WMSLayout({ children }: { children: React.ReactNode }) {
 
         {/* Footer */}
         <div className="px-4 py-3 text-xs shrink-0" style={{ color: 'hsl(var(--sidebar-section))', borderTop: '1px solid hsl(var(--sidebar-border))' }}>
-          WMS v1.0 · 模拟数据
+          全功能专业仓储与供应链管理系统 v1.0
         </div>
       </aside>
 
