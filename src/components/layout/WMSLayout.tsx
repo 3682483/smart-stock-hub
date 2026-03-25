@@ -4,7 +4,8 @@ import {
   Package, MapPin, Users, Building2, LayoutDashboard,
   ShoppingCart, Truck, ClipboardList, BarChart3, Archive,
   ArrowDownToLine, ArrowUpFromLine, ScanLine, AlertTriangle,
-  ChevronDown, ChevronRight, Menu, X, Bell, Search, DollarSign
+  ChevronDown, ChevronRight, Menu, X, Bell, Search, DollarSign,
+  Store
 } from 'lucide-react';
 
 interface NavItem {
@@ -24,7 +25,12 @@ const navItems: NavItem[] = [
       { label: '供应商管理', path: '/suppliers' },
     ]
   },
-  { label: '选品与招商', icon: <Users size={18} />, path: '/merchant' },
+  { label: '选品与招商', icon: <Users size={18} />,
+    children: [
+      { label: '招商入驻', path: '/merchant' },
+      { label: '展位/库位租赁管理', path: '/exhibit' },
+    ]
+  },
   {
     label: '采购入库', icon: <ArrowDownToLine size={18} />,
     children: [

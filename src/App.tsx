@@ -21,6 +21,7 @@ import StocktakingPage from "@/pages/StocktakingPage";
 import InterceptPage from "@/pages/InterceptPage";
 import ReturnsPage from "@/pages/ReturnsPage";
 import MerchantPage from "@/pages/MerchantPage";
+import ExhibitPage from "@/pages/ExhibitPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/returns" element={<ReturnsPage />} />
             <Route path="/alerts" element={<InventoryPage />} />
             <Route path="/finance" element={<FinancePage />} />
+            <Route path="/exhibit" element={<ExhibitPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </WMSLayout>

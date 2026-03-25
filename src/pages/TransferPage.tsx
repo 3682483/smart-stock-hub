@@ -13,8 +13,11 @@ const mockTransfers = [
 export default function TransferPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [showPdaSim, setShowPdaSim] = useState(true);
-  const [pdaScreen, setPdaScreen] = useState<'menu' | 'transfer' | 'success'>('menu');
+  const [pdaScreen, setPdaScreen] = useState<'menu' | 'transfer' | 'success' | 'putaway' | 'putaway_scan' | 'stocktake' | 'stocktake_scan' | 'query' | 'query_result'>('menu');
   const [pdaForm, setPdaForm] = useState({ from: '', sku: '', to: '', qty: '1' });
+  const [putawayForm, setPutawayForm] = useState({ sku: '', location: '', qty: '' });
+  const [stocktakeForm, setStocktakeForm] = useState({ location: '', sku: '', counted: '' });
+  const [queryForm, setQueryForm] = useState({ keyword: '' });
   const { toast } = useToast();
 
   const handlePdaSubmit = () => {
@@ -26,9 +29,40 @@ export default function TransferPage() {
     toast({ title: '移库成功', description: `物料已移至 ${pdaForm.to}` });
   };
 
+  const handlePutawaySubmit = () => {
+    if (!putawayForm.sku || !putawayForm.location) {
+      toast({ title: '参数缺失', description: '请扫描商品和库位', variant: 'destructive' });
+      return;
+    }
+    toast({ title: '上架成功', description: `商品 ${putawayForm.sku} 已上架至 ${putawayForm.location}` });
+    setPdaScreen('success');
+    setPutawayForm({ sku: '', location: '', qty: '' });
+  };
+
+  const handleStocktakeSubmit = () => {
+    if (!stocktakeForm.location || !stocktakeForm.sku) {
+      toast({ title: '参数缺失', description: '请扫描库位和商品', variant: 'destructive' });
+      return;
+    }
+    toast({ title: '盘点完成', description: `库位 ${stocktakeForm.location} 的 ${stocktakeForm.sku} 盘点完成` });
+    setPdaScreen('success');
+    setStocktakeForm({ location: '', sku: '', counted: '' });
+  };
+
+  const handleQuerySubmit = () => {
+    if (!queryForm.keyword) {
+      toast({ title: '请输入查询条件', description: '请输入SKU或商品名称', variant: 'destructive' });
+      return;
+    }
+    setPdaScreen('query_result');
+  };
+
   const resetPda = () => {
     setPdaScreen('menu');
     setPdaForm({ from: '', sku: '', to: '', qty: '1' });
+    setPutawayForm({ sku: '', location: '', qty: '' });
+    setStocktakeForm({ location: '', sku: '', counted: '' });
+    setQueryForm({ keyword: '' });
   };
 
   return (
@@ -144,6 +178,10 @@ export default function TransferPage() {
                   <h3 className="font-bold flex-1 text-center text-sm">
                     {pdaScreen === 'menu' && 'WMSPro PDA'}
                     {pdaScreen === 'transfer' && '库内移库'}
+                    {pdaScreen === 'putaway' && '扫描上架'}
+                    {pdaScreen === 'stocktake' && '动态盘点'}
+                    {pdaScreen === 'query' && '库存查询'}
+                    {pdaScreen === 'query_result' && '查询结果'}
                     {pdaScreen === 'success' && '操作成功'}
                   </h3>
                   <div className="w-8"></div>
@@ -157,15 +195,15 @@ export default function TransferPage() {
                         <ArrowRightLeft size={32} className="text-purple-500 mb-2" />
                         <span className="text-xs font-bold">库内移库</span>
                       </button>
-                      <button className="aspect-square bg-white shadow-sm border rounded-xl flex flex-col items-center justify-center p-3">
+                      <button onClick={() => setPdaScreen('putaway')} className="aspect-square bg-white shadow-sm border rounded-xl flex flex-col items-center justify-center p-3 hover:bg-slate-50 transition">
                         <Package size={32} className="text-blue-500 mb-2" />
                         <span className="text-xs font-bold">扫描上架</span>
                       </button>
-                      <button className="aspect-square bg-white shadow-sm border rounded-xl flex flex-col items-center justify-center p-3">
+                      <button onClick={() => setPdaScreen('stocktake')} className="aspect-square bg-white shadow-sm border rounded-xl flex flex-col items-center justify-center p-3 hover:bg-slate-50 transition">
                         <CheckCircle size={32} className="text-green-500 mb-2" />
                         <span className="text-xs font-bold">动态盘点</span>
                       </button>
-                      <button className="aspect-square bg-white shadow-sm border rounded-xl flex flex-col items-center justify-center p-3">
+                      <button onClick={() => setPdaScreen('query')} className="aspect-square bg-white shadow-sm border rounded-xl flex flex-col items-center justify-center p-3 hover:bg-slate-50 transition">
                         <div className="w-8 h-8 rounded-full bg-yellow-500/20 text-yellow-600 flex items-center justify-center font-bold text-lg mb-2">Q</div>
                         <span className="text-xs font-bold">库存查询</span>
                       </button>
@@ -215,6 +253,153 @@ export default function TransferPage() {
                       </div>
                       <div className="flex-1"></div>
                       <button onClick={handlePdaSubmit} className="w-full py-3 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition mt-auto">确认移库</button>
+                    </div>
+                  )}
+
+                  {pdaScreen === 'putaway' && (
+                    <div className="space-y-3 flex-1 flex flex-col">
+                      <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-700">
+                        扫描采购单或商品条码，系统将自动推荐最优库位
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-500">扫描商品条码</label>
+                        <input
+                          type="text"
+                          placeholder="请扫描商品条码..."
+                          className="w-full text-center py-2 border rounded-md font-mono text-sm bg-slate-100"
+                          value={putawayForm.sku}
+                          onChange={e => setPutawayForm({ ...putawayForm, sku: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-500">推荐库位</label>
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-md text-center">
+                          <span className="font-mono font-bold text-green-700">A-01-03</span>
+                          <span className="text-xs text-green-600 block">容量: 60% | 靠近出入口</span>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-500">扫描库位确认</label>
+                        <input
+                          type="text"
+                          placeholder="请扫描库位标签..."
+                          className="w-full text-center py-2 border rounded-md font-mono text-sm bg-slate-100"
+                          value={putawayForm.location}
+                          onChange={e => setPutawayForm({ ...putawayForm, location: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-500">上架数量</label>
+                        <input
+                          type="number"
+                          placeholder="数量"
+                          value={putawayForm.qty}
+                          onChange={e => setPutawayForm({ ...putawayForm, qty: e.target.value })}
+                          className="w-full text-center py-2 border rounded-md font-bold text-lg"
+                        />
+                      </div>
+                      <div className="flex-1"></div>
+                      <button onClick={handlePutawaySubmit} className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition mt-auto">确认上架</button>
+                    </div>
+                  )}
+
+                  {pdaScreen === 'stocktake' && (
+                    <div className="space-y-3 flex-1 flex flex-col">
+                      <div className="p-3 bg-green-50 rounded-lg text-xs text-green-700">
+                        扫描库位和商品，系统自动比对账面库存
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-500">扫描库位标签</label>
+                        <input
+                          type="text"
+                          placeholder="请扫描库位..."
+                          className="w-full text-center py-2 border rounded-md font-mono text-sm bg-slate-100"
+                          value={stocktakeForm.location}
+                          onChange={e => setStocktakeForm({ ...stocktakeForm, location: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-500">扫描商品条码</label>
+                        <input
+                          type="text"
+                          placeholder="请扫描商品..."
+                          className="w-full text-center py-2 border rounded-md font-mono text-sm bg-slate-100"
+                          value={stocktakeForm.sku}
+                          onChange={e => setStocktakeForm({ ...stocktakeForm, sku: e.target.value })}
+                        />
+                      </div>
+                      <div className="p-3 bg-slate-100 rounded-lg">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-slate-500">账面库存</span>
+                          <span className="font-bold">200 件</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-500">差异</span>
+                          <span className="font-bold text-green-600">待盘点</span>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-500">实盘数量</label>
+                        <input
+                          type="number"
+                          placeholder="输入实盘数量"
+                          value={stocktakeForm.counted}
+                          onChange={e => setStocktakeForm({ ...stocktakeForm, counted: e.target.value })}
+                          className="w-full text-center py-2 border rounded-md font-bold text-lg"
+                        />
+                      </div>
+                      <div className="flex-1"></div>
+                      <button onClick={handleStocktakeSubmit} className="w-full py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition mt-auto">确认盘点</button>
+                    </div>
+                  )}
+
+                  {pdaScreen === 'query' && (
+                    <div className="space-y-3 flex-1 flex flex-col">
+                      <div className="p-3 bg-yellow-50 rounded-lg text-xs text-yellow-700">
+                        输入SKU编码或商品名称进行查询
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-500">查询关键词</label>
+                        <input
+                          type="text"
+                          placeholder="输入SKU或商品名称..."
+                          className="w-full text-center py-2 border rounded-md font-mono text-sm bg-slate-100"
+                          value={queryForm.keyword}
+                          onChange={e => setQueryForm({ ...queryForm, keyword: e.target.value })}
+                        />
+                      </div>
+                      <div className="flex-1"></div>
+                      <button onClick={handleQuerySubmit} className="w-full py-3 bg-yellow-500 text-white font-bold rounded-lg hover:bg-yellow-600 transition mt-auto">查询</button>
+                    </div>
+                  )}
+
+                  {pdaScreen === 'query_result' && (
+                    <div className="space-y-3 flex-1 flex flex-col">
+                      <div className="p-3 bg-slate-100 rounded-lg">
+                        <div className="text-xs text-slate-500 mb-1">商品名称</div>
+                        <div className="font-bold text-sm">蓝牙耳机 Pro Max</div>
+                        <div className="text-xs text-slate-500 font-mono mt-1">SKU-10001</div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="p-3 bg-slate-100 rounded-lg text-center">
+                          <div className="text-xs text-slate-500">可用库存</div>
+                          <div className="font-bold text-lg text-green-600">320</div>
+                        </div>
+                        <div className="p-3 bg-slate-100 rounded-lg text-center">
+                          <div className="text-xs text-slate-500">安全库存</div>
+                          <div className="font-bold text-lg">100</div>
+                        </div>
+                        <div className="p-3 bg-slate-100 rounded-lg text-center">
+                          <div className="text-xs text-slate-500">库位</div>
+                          <div className="font-bold font-mono text-sm">A-01-01</div>
+                        </div>
+                        <div className="p-3 bg-slate-100 rounded-lg text-center">
+                          <div className="text-xs text-slate-500">状态</div>
+                          <div className="font-bold text-xs"><span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full">正常</span></div>
+                        </div>
+                      </div>
+                      <div className="flex-1"></div>
+                      <button onClick={() => setPdaScreen('query')} className="w-full py-3 bg-slate-600 text-white font-bold rounded-lg hover:bg-slate-700 transition mt-auto">继续查询</button>
                     </div>
                   )}
 

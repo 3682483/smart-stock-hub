@@ -531,21 +531,21 @@ export default function DashboardPage() {
           </div>
 
           {/* 实时状态动态线 */}
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-4 overflow-hidden">
+          <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-white font-semibold flex items-center gap-2 text-sm">
                 <Activity size={14} className="text-primary animate-pulse" /> 实时状态动态线
               </h3>
-              <span className="text-xs text-slate-400">自动滚动 · 5秒更新</span>
+              <span className="text-xs text-slate-400">5秒自动更新</span>
             </div>
-            <div className="flex gap-6 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex flex-wrap gap-3">
               {activityLogs.map((log, idx) => (
-                <div key={idx} className="flex items-center gap-3 shrink-0 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700">
+                <div key={idx} className="flex items-center gap-3 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700">
                   <span className="text-xs font-mono text-slate-500">{log.time}</span>
                   <span className={`w-1.5 h-1.5 rounded-full ${log.status === 'success' ? 'bg-success' : log.status === 'warning' ? 'bg-warning' : 'bg-blue-400'}`} />
                   <span className="text-xs text-white">{log.operator}</span>
                   <span className="text-xs text-primary">{log.action}</span>
-                  <span className="text-xs text-slate-400 max-w-[120px] truncate">{log.detail}</span>
+                  <span className="text-xs text-slate-400 max-w-[150px] truncate">{log.detail}</span>
                 </div>
               ))}
             </div>

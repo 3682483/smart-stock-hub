@@ -11,7 +11,9 @@
       "mcp__Playwright__browser_click",
       "mcp__Playwright__browser_snapshot",
       "mcp__Playwright__browser_type",
-      "mcp__Playwright__browser_close"
+      "mcp__Playwright__browser_close",
+      "mcp__serena__list_dir",
+      "mcp__serena__get_symbols_overview"
     ]
   }
 }
