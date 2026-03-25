@@ -10,7 +10,8 @@
       "Bash(ls -la src/pages/*.tsx)",
       "mcp__Playwright__browser_click",
       "mcp__Playwright__browser_snapshot",
-      "mcp__Playwright__browser_type"
+      "mcp__Playwright__browser_type",
+      "mcp__Playwright__browser_close"
     ]
   }
 }

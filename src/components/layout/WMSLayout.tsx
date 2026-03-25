@@ -24,6 +24,7 @@ const navItems: NavItem[] = [
       { label: '供应商管理', path: '/suppliers' },
     ]
   },
+  { label: '选品与招商', icon: <Users size={18} />, path: '/merchant' },
   {
     label: '采购入库', icon: <ArrowDownToLine size={18} />,
     children: [

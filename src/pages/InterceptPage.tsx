@@ -1,213 +1,126 @@
-import { useState } from 'react';
-import { ScanLine, AlertTriangle, CheckCircle, XCircle, Search, Package } from 'lucide-react';
+import React, { useState } from 'react';
+import { ScanLine, RefreshCw, CheckCircle, AlertCircle, Trash2, XCircle, Printer } from 'lucide-react';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { useToast } from '@/components/ui/use-toast';
 
-const interceptRecords = [
-  { id: 'INT001', orderNo: 'DY-20250324-66003', platform: '抖音', expressNo: 'SF1234567890', reason: '用户取消', status: 'intercepted', operator: '系统', time: '09:15' },
-  { id: 'INT002', orderNo: 'TB-20250324-88005', platform: '淘宝', expressNo: 'ZT9876543210', reason: '地址异常', status: 'released', operator: '王五', time: '08:45' },
-  { id: 'INT003', orderNo: 'PDD-20250324-55003', platform: '拼多多', expressNo: 'JD2468101214', reason: '重复订单', status: 'intercepted', operator: '系统', time: '08:30' },
-  { id: 'INT004', orderNo: 'TB-20250324-88008', platform: '淘宝', expressNo: 'YTO1357924680', reason: '超时未付款', status: 'released', operator: '李四', time: '07:55' },
+const mockIntercepOrders = [
+  { id: 'SO-250325-001', carrierNo: 'SF1425364758', reason: '买家申请取消', status: 'intercepted', time: '10分钟前' },
+  { id: 'SO-250325-002', carrierNo: 'SF1425364759', reason: '地址变更', status: 'pending', time: '30分钟前' },
+  { id: 'SO-250325-003', carrierNo: 'SF1425364760', reason: '库存盘亏', status: 'pending', time: '1小时前' },
 ];
 
 export default function InterceptPage() {
+  const [activeTab, setActiveTab] = useState('all');
   const [scanValue, setScanValue] = useState('');
-  const [showResult, setShowResult] = useState(false);
-  const [scanResult, setScanResult] = useState<typeof interceptRecords[0] | null>(null);
   const { toast } = useToast();
+
+  const handleIntercept = (id: string) => {
+    toast({ title: '拦截成功', description: `订单 ${id} 的物流面单已成功核验拦截状态，包裹已转入退位区。` });
+  };
 
   const handleScan = (e: React.FormEvent) => {
     e.preventDefault();
     if (!scanValue) return;
-
-    // 模拟扫描查找
-    const found = interceptRecords.find(r => r.expressNo.includes(scanValue) || r.orderNo.includes(scanValue));
-    if (found) {
-      setScanResult(found);
-      setShowResult(true);
-      if (found.status === 'intercepted') {
-        toast({ title: '订单已拦截', description: `订单 ${found.orderNo} 已被拦截，请处理`, variant: 'destructive' });
-      } else {
-        toast({ title: '订单可放行', description: `订单 ${found.orderNo} 无异常，可以放行` });
-      }
-    } else {
-      toast({ title: '未找到订单', description: '未匹配到相关订单信息', variant: 'destructive' });
-    }
+    toast({ title: '扫描拦截核验', description: `扫描单号 ${scanValue}，订单由于 [买家申请退款] 已被强制拦截归位！`, variant: 'destructive' });
     setScanValue('');
   };
 
-  const handleRelease = (id: string) => {
-    toast({ title: '已放行', description: `订单已标记为放行，可继续发货` });
-    setShowResult(false);
-    setScanResult(null);
-  };
-
-  const handleProcessException = (id: string) => {
-    toast({ title: '异常件处理', description: '请选择异常原因并提交' });
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex flex-col h-full">
       <div className="wms-page-header">
         <div>
           <h1 className="wms-page-title">出库拦截</h1>
-          <p className="wms-page-subtitle">出库前扫描面单，自动拦截已取消订单</p>
+          <p className="wms-page-subtitle">最后一道关卡：出库前扫描面单，自动识别并拦截已取消订单</p>
         </div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-md border hover:bg-muted transition">
-            导出记录
+          <button className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-md border text-muted-foreground hover:bg-muted transition">
+            <RefreshCw size={16} />同步取消单
           </button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: '今日拦截', value: 5, color: 'text-destructive' },
-          { label: '已放行', value: 12, color: 'text-success' },
-          { label: '待处理', value: 2, color: 'text-warning' },
-          { label: '避免损失', value: '¥860', color: 'text-primary' },
-        ].map(stat => (
-          <div key={stat.label} className="bg-card rounded-lg border p-4">
-            <p className="text-sm text-muted-foreground">{stat.label}</p>
-            <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Scan Area */}
-      <div className="bg-card rounded-lg border p-6">
-        <div className="flex flex-col items-center">
-          <div className={`p-6 rounded-full ${showResult && scanResult?.status === 'intercepted' ? 'bg-destructive/10' : showResult ? 'bg-success/10' : 'bg-primary/10'} mb-4 transition-colors`}>
-            <ScanLine size={48} className={showResult && scanResult?.status === 'intercepted' ? 'text-destructive' : showResult ? 'text-success' : 'text-primary'} />
-          </div>
-          <h2 className="text-lg font-semibold mb-2">扫描面单条码</h2>
-          <p className="text-sm text-muted-foreground mb-6">扫描物流面单或输入单号进行拦截检查</p>
-          <form onSubmit={handleScan} className="w-full max-w-md flex gap-2">
-            <input
-              type="text"
-              placeholder="扫描或输入面单号..."
-              className="flex-1 px-4 py-3 rounded-lg bg-muted text-lg outline-none focus:ring-2 focus:ring-primary/30 text-center font-mono"
-              value={scanValue}
-              onChange={(e) => setScanValue(e.target.value)}
-            />
-            <button type="submit" className="px-6 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition">
-              查询
-            </button>
-          </form>
-        </div>
-      </div>
-
-      {/* Scan Result */}
-      {showResult && scanResult && (
-        <div className={`rounded-lg border p-6 ${scanResult.status === 'intercepted' ? 'border-destructive bg-destructive/5' : 'border-success bg-success/5'}`}>
-          <div className="flex items-start gap-4">
-            <div className={`p-3 rounded-full ${scanResult.status === 'intercepted' ? 'bg-destructive/10' : 'bg-success/10'}`}>
-              {scanResult.status === 'intercepted' ? <XCircle size={32} className="text-destructive" /> : <CheckCircle size={32} className="text-success" />}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-lg font-bold">{scanResult.status === 'intercepted' ? '订单已拦截' : '订单可放行'}</h3>
-                <StatusBadge status={scanResult.status === 'intercepted' ? 'abnormal' : 'active'} />
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">订单号</p>
-                  <p className="font-mono font-medium">{scanResult.orderNo}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">平台</p>
-                  <p className="font-medium">{scanResult.platform}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">物流单号</p>
-                  <p className="font-mono">{scanResult.expressNo}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">拦截原因</p>
-                  <p className="font-medium text-destructive">{scanResult.reason}</p>
-                </div>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+        {/* Scan column */}
+        <div className="lg:col-span-1 space-y-4">
+          <div className="bg-card border rounded-lg p-5 shadow-sm">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <ScanLine size={18} className="text-primary" />
+              面单出库核验
+            </h3>
+            <form onSubmit={handleScan} className="flex gap-2">
+              <input
+                type="text"
+                placeholder="扫描面单条码或快递单号..."
+                className="flex-1 px-3 py-2 rounded-md bg-muted text-sm outline-none focus:ring-1 focus:ring-primary/40 text-background-foreground"
+                value={scanValue}
+                onChange={(e) => setScanValue(e.target.value)}
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:opacity-90 transition"
+              >
+                核验
+              </button>
+            </form>
+            <div className="mt-4 text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
+              <p>在包裹交付快递员扫描揽收前，最后一分钟过检系统核验状态。</p>
+              <p className="mt-1 text-destructive font-medium">如有冻结，声光报警发出红色拦截指示！</p>
             </div>
           </div>
-          <div className="flex gap-3 mt-6 justify-end">
-            {scanResult.status === 'intercepted' ? (
-              <>
-                <button onClick={() => { toast({ title: '已放行', description: '订单已标记为放行' }); setShowResult(false); }} className="px-4 py-2 text-sm rounded-md border hover:bg-muted transition">强制放行</button>
-                <button onClick={() => handleProcessException(scanResult.id)} className="px-4 py-2 text-sm rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition">异常处理</button>
-              </>
-            ) : (
-              <button onClick={() => handleRelease(scanResult.id)} className="px-4 py-2 text-sm rounded-md bg-success text-success-foreground hover:bg-success/90 transition">确认放行</button>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* Internal Label Example */}
-      <div className="bg-card rounded-lg border p-5">
-        <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <Package size={18} className="text-muted-foreground" />
-          内部库位联说明
-        </h3>
-        <div className="bg-muted/50 rounded-lg p-4 text-sm">
-          <p className="text-muted-foreground">内部库位联是贴在包裹上的内部识别标签，包含：</p>
-          <ul className="list-disc list-inside mt-2 space-y-1 text-muted-foreground">
-            <li>订单号（用于溯源）</li>
-            <li>库位编码（用于退货归位）</li>
-            <li>商品摘要（用于快速识别）</li>
-          </ul>
-          <p className="mt-3 text-muted-foreground">当订单被拦截或退货时，可通过内部联上的库位信息直接进行归位操作，无需再查询系统。</p>
-        </div>
-      </div>
-
-      {/* Records Table */}
-      <div className="bg-card rounded-lg border">
-        <div className="p-4 border-b flex items-center justify-between">
-          <h3 className="font-semibold">拦截记录</h3>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input placeholder="搜索订单..." className="pl-8 pr-4 py-1.5 rounded-md bg-muted text-sm outline-none focus:ring-2 focus:ring-primary/30 w-48" />
+          <div className="bg-warning/10 border border-warning/20 p-4 rounded-lg flex gap-3 text-warning">
+            <AlertCircle size={20} className="shrink-0 mt-0.5" />
+            <div className="text-xs">
+              <h4 className="font-semibold mb-1">避免物流费损失</h4>
+              <p className="text-muted-foreground">出库扫描可百分之百拦截取消订单，从而在揽收端阻止商品进入快递链路，减少仓储及逆向物流损耗。</p>
             </div>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="wms-data-table">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-left p-3 font-medium text-muted-foreground">记录ID</th>
-                <th className="text-left p-3 font-medium text-muted-foreground">订单号</th>
-                <th className="text-left p-3 font-medium text-muted-foreground">平台</th>
-                <th className="text-left p-3 font-medium text-muted-foreground">物流单号</th>
-                <th className="text-left p-3 font-medium text-muted-foreground">拦截原因</th>
-                <th className="text-center p-3 font-medium text-muted-foreground">状态</th>
-                <th className="text-left p-3 font-medium text-muted-foreground">操作员</th>
-                <th className="text-left p-3 font-medium text-muted-foreground">时间</th>
-              </tr>
-            </thead>
-            <tbody>
-              {interceptRecords.map(record => (
-                <tr key={record.id} className="border-b hover:bg-muted/30 transition-colors">
-                  <td className="p-3 font-mono text-xs">{record.id}</td>
-                  <td className="p-3 font-mono text-xs">{record.orderNo}</td>
-                  <td className="p-3 text-sm">{record.platform}</td>
-                  <td className="p-3 font-mono text-xs">{record.expressNo}</td>
-                  <td className="p-3 text-sm">
-                    {record.status === 'intercepted' ? (
-                      <span className="text-destructive flex items-center gap-1"><AlertTriangle size={12} />{record.reason}</span>
+
+        {/* List column */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex gap-4 border-b">
+            {['all', 'pending', 'intercepted'].map((tab) => (
+              <button
+                key={tab}
+                className={`pb-3 px-1 text-sm font-medium ${activeTab === tab ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab === 'all' && '全部拦截记录'}
+                {tab === 'pending' && '待核验拦截'}
+                {tab === 'intercepted' && '已成功拦截'}
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-3">
+            {mockIntercepOrders.filter(o => activeTab === 'all' || o.status === activeTab).map((order) => (
+              <div key={order.id} className="bg-card border rounded-lg p-5 hover:bg-muted/30 cursor-pointer transition-colors shadow-sm">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-bold">{order.id}</span>
+                      <span className="text-xs text-muted-foreground">面单号: {order.carrierNo}</span>
+                    </div>
+                    <p className="text-xs text-destructive font-medium mt-1">拦截原因: {order.reason}</p>
+                  </div>
+                  <StatusBadge status={order.status === 'intercepted' ? 'active' : 'pending'} />
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground pt-4 border-t mt-4">
+                  <span>创建时间: {order.time}</span>
+                  <div className="flex gap-2">
+                    {order.status === 'pending' ? (
+                      <button onClick={() => handleIntercept(order.id)} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded font-medium text-[11px] transition shadow-sm">
+                        强制拦截归位
+                      </button>
                     ) : (
-                      <span className="text-muted-foreground">{record.reason}</span>
+                      <span className="flex items-center gap-1 text-success text-[11px]"><CheckCircle size={12} /> 已强制回仓</span>
                     )}
-                  </td>
-                  <td className="p-3 text-center">
-                    <StatusBadge status={record.status === 'intercepted' ? 'abnormal' : 'active'} />
-                  </td>
-                  <td className="p-3 text-sm">{record.operator}</td>
-                  <td className="p-3 text-xs text-muted-foreground">{record.time}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

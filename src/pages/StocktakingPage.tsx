@@ -1,324 +1,169 @@
-import { useState } from 'react';
-import { ClipboardList, CheckCircle, AlertTriangle, Plus, Search, ScanLine } from 'lucide-react';
+import React, { useState } from 'react';
+import { ClipboardList, Plus, Search, CheckCircle, AlertTriangle, AlertCircle, RefreshCw, BarChart3, TrendingUp, TrendingDown } from 'lucide-react';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { useToast } from '@/components/ui/use-toast';
 
-const stocktakingTasks = [
-  { id: 'ST001', type: 'cycle', name: 'B区拣货位月度盘点', zone: '拣货区B', progress: 100, total: 50, diff: 0, status: 'completed', operator: '张三', date: '2025-03-24' },
-  { id: 'ST002', type: 'dynamic', name: 'A-01区临时盘点', zone: '存储区A', progress: 60, total: 20, diff: 2, status: 'in_progress', operator: '李四', date: '2025-03-24' },
-  { id: 'ST003', type: 'cycle', name: 'C区展位季度盘点', zone: '展位区C', progress: 0, total: 30, diff: 0, status: 'pending', operator: '王五', date: '2025-03-25' },
-  { id: 'ST004', type: 'dynamic', name: '爆款商品抽盘', zone: '存储区A', progress: 0, total: 10, diff: 0, status: 'pending', operator: '赵六', date: '2025-03-26' },
+const mockCountPlans = [
+  { id: 'STK-202603-01', type: '周期配盘', scope: 'A区(爆款拣货区)', items: 45, progress: 80, status: 'active', variance: 2 },
+  { id: 'STK-202603-02', type: '动态盘点', scope: 'B区智能推荐建议', items: 12, progress: 100, status: 'completed', variance: 0 },
+  { id: 'STK-202603-03', type: '异常盘点', scope: 'C-01 库位', items: 1, progress: 0, status: 'pending', variance: 0 },
 ];
 
-const stocktakingDetails = [
-  { sku: 'SKU-10001', name: '蓝牙耳机 Pro Max', location: 'A-01-03', bookQty: 520, actualQty: 518, diff: -2, status: 'normal' },
-  { sku: 'SKU-10002', name: '手机壳 iPhone15', location: 'A-02-01', bookQty: 2300, actualQty: 2300, diff: 0, status: 'normal' },
-  { sku: 'SKU-10007', name: '无线充电器', location: 'A-01-05', bookQty: 320, actualQty: 315, diff: -5, status: 'abnormal' },
-  { sku: 'SKU-10006', name: '车载手机支架', location: 'A-03-02', bookQty: 1500, actualQty: 1500, diff: 0, status: 'normal' },
+const mockLogs = [
+  { id: 'LOG-001', operator: '张三', action: '盘点差异确认', target: 'SKU-10088', result: '-2件', date: '10分钟前' },
+  { id: 'LOG-002', operator: '李四', action: '扫码盘点', target: 'A-01-01', result: '无差异', date: '30分钟前' },
+  { id: 'LOG-003', operator: 'PDA-002', action: '触发盘点任务', target: 'B区-补货点', result: '已生成', date: '1小时前' },
 ];
 
 export default function StocktakingPage() {
-  const [activeTab, setActiveTab] = useState('tasks');
-  const [selectedTask, setSelectedTask] = useState<typeof stocktakingTasks[0] | null>(null);
-  const [showNewDialog, setShowNewDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [showLogDialog, setShowLogDialog] = useState(false);
   const { toast } = useToast();
 
-  const handleStartTask = (task: typeof stocktakingTasks[0]) => {
-    setSelectedTask(task);
-    toast({ title: '开始盘点', description: `盘点任务 ${task.id} 已开始` });
-  };
-
-  const handleConfirmDiff = (item: typeof stocktakingDetails[0]) => {
-    toast({ title: '差异已确认', description: `${item.sku} 差异 ${item.diff} 已提交复核` });
+  const handleStartCount = (id: string) => {
+    toast({ title: '盘点已开始', description: `任务 ${id} 的盘点单已同步至PDA手持端，请前往作业。` });
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex flex-col h-full">
       <div className="wms-page-header">
         <div>
           <h1 className="wms-page-title">盘点管理</h1>
-          <p className="wms-page-subtitle">周期性盘点、动态盘点、差异报告</p>
+          <p className="wms-page-subtitle">周期性盘点、动态触发盘点、差异对比汇总报告</p>
         </div>
-        <button
-          onClick={() => setShowNewDialog(true)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 transition"
-        >
-          <Plus size={16} />新建盘点任务
-        </button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: '待执行', value: 2, color: 'text-warning' },
-          { label: '进行中', value: 1, color: 'text-primary' },
-          { label: '已完成', value: 15, color: 'text-success' },
-          { label: '差异待处理', value: 3, color: 'text-destructive' },
-        ].map(stat => (
-          <div key={stat.label} className="bg-card rounded-lg border p-4">
-            <p className="text-sm text-muted-foreground">{stat.label}</p>
-            <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 border-b">
-        {[
-          { key: 'tasks', label: '盘点任务' },
-          { key: 'details', label: '盘点明细' },
-          { key: 'diff', label: '差异记录' },
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`pb-3 px-1 text-sm font-medium ${activeTab === tab.key ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            {tab.label}
+        <div className="flex gap-2">
+          <button className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-md border hover:bg-muted transition">
+            <RefreshCw size={16} />同步日志
           </button>
-        ))}
+          <button className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 transition font-medium">
+            <Plus size={16} />发起的盘点
+          </button>
+        </div>
       </div>
 
-      {activeTab === 'tasks' && (
-        <div className="bg-card rounded-lg border">
-          <div className="overflow-x-auto">
-            <table className="wms-data-table">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left p-3 font-medium text-muted-foreground">任务编号</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">任务名称</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">类型</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">库区</th>
-                  <th className="text-center p-3 font-medium text-muted-foreground">进度</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">差异数</th>
-                  <th className="text-center p-3 font-medium text-muted-foreground">状态</th>
-                  <th className="text-center p-3 font-medium text-muted-foreground">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stocktakingTasks.map(task => (
-                  <tr key={task.id} className="border-b hover:bg-muted/30 transition-colors">
-                    <td className="p-3 font-mono text-xs font-medium">{task.id}</td>
-                    <td className="p-3 text-sm font-medium">{task.name}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-xs ${task.type === 'cycle' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {task.type === 'cycle' ? '周期盘点' : '动态盘点'}
-                      </span>
-                    </td>
-                    <td className="p-3 text-sm">{task.zone}</td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-20 bg-muted rounded-full h-1.5">
-                          <div className="bg-primary h-1.5 rounded-full" style={{ width: `${task.progress}%` }} />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{task.progress}%</span>
-                      </div>
-                    </td>
-                    <td className="p-3 text-right">
-                      {task.diff > 0 && <span className="text-destructive font-medium">{task.diff}</span>}
-                      {task.diff === 0 && <span className="text-muted-foreground">0</span>}
-                    </td>
-                    <td className="p-3 text-center">
-                      <StatusBadge status={task.status === 'completed' ? 'active' : task.status === 'in_progress' ? 'pending' : 'warning'} />
-                    </td>
-                    <td className="p-3 text-center">
-                      {task.status === 'pending' && (
-                        <button onClick={() => handleStartTask(task)} className="text-xs text-primary hover:underline">开始盘点</button>
-                      )}
-                      {task.status === 'in_progress' && (
-                        <button onClick={() => setSelectedTask(task)} className="text-xs text-primary hover:underline">继续盘点</button>
-                      )}
-                      {task.status === 'completed' && (
-                        <button onClick={() => toast({ title: '查看报告', description: '盘点报告生成中...' })} className="text-xs text-muted-foreground hover:underline">查看报告</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-card p-5 rounded-lg border shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-muted-foreground">本月总完成</p>
+            <div className="p-2 bg-success/10 text-success rounded-md"><CheckCircle size={16} /></div>
           </div>
+          <p className="text-2xl font-bold">42 场</p>
+          <p className="text-xs text-muted-foreground flex items-center mt-2">
+            包含: 周期*15, 动态*22, 异常*5
+          </p>
         </div>
-      )}
-
-      {activeTab === 'details' && (
-        <div className="bg-card rounded-lg border">
-          <div className="p-4 border-b flex items-center gap-3">
-            <div className="relative flex-1 max-w-sm">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input placeholder="搜索SKU或商品名称..." className="w-full pl-9 pr-4 py-2 rounded-md bg-muted text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
+        <div className="bg-card p-5 rounded-lg border shadow-sm border-warning/20">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-muted-foreground">平均差异率</p>
+            <div className="p-2 bg-warning/10 text-warning rounded-md"><AlertTriangle size={16} /></div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="wms-data-table">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left p-3 font-medium text-muted-foreground">SKU</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">商品名称</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">库位</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">账面数</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">实盘数</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">差异</th>
-                  <th className="text-center p-3 font-medium text-muted-foreground">状态</th>
-                  <th className="text-center p-3 font-medium text-muted-foreground">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stocktakingDetails.map(item => (
-                  <tr key={item.sku} className="border-b hover:bg-muted/30 transition-colors">
-                    <td className="p-3 font-mono text-xs">{item.sku}</td>
-                    <td className="p-3 text-sm font-medium">{item.name}</td>
-                    <td className="p-3 font-mono text-xs">{item.location}</td>
-                    <td className="p-3 text-right font-mono">{item.bookQty}</td>
-                    <td className="p-3 text-right font-mono">{item.actualQty}</td>
-                    <td className="p-3 text-right">
-                      {item.diff !== 0 ? (
-                        <span className={`font-mono font-medium ${item.diff > 0 ? 'text-success' : 'text-destructive'}`}>
-                          {item.diff > 0 ? '+' : ''}{item.diff}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                    </td>
-                    <td className="p-3 text-center">
-                      {item.status === 'normal' ? (
-                        <span className="flex items-center justify-center gap-1 text-success text-xs"><CheckCircle size={12} />正常</span>
-                      ) : (
-                        <span className="flex items-center justify-center gap-1 text-destructive text-xs"><AlertTriangle size={12} />异常</span>
-                      )}
-                    </td>
-                    <td className="p-3 text-center">
-                      {item.status === 'abnormal' && (
-                        <button onClick={() => handleConfirmDiff(item)} className="text-xs text-primary hover:underline">确认差异</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <p className="text-2xl font-bold text-warning">0.32%</p>
+          <p className="text-xs text-success flex items-center mt-2 font-medium">
+            <TrendingDown size={12} className="mr-1" /> 同比上月下降 12%
+          </p>
+        </div>
+        <div className="bg-card p-5 rounded-lg border shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-muted-foreground">待解决差异</p>
+            <div className="p-2 bg-destructive/10 text-destructive rounded-md"><AlertCircle size={16} /></div>
           </div>
+          <p className="text-2xl font-bold font-mono text-destructive">2 笔</p>
+          <p className="text-xs text-muted-foreground flex items-center mt-2">
+            需采购员/账面管理员人工复核
+          </p>
         </div>
-      )}
+      </div>
 
-      {activeTab === 'diff' && (
-        <div className="space-y-4">
-          {stocktakingDetails.filter(d => d.diff !== 0).map(item => (
-            <div key={item.sku} className="bg-card rounded-lg border p-4 flex items-start gap-4">
-              <div className={`p-2 rounded-md ${item.diff > 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
-                <AlertTriangle size={20} className={item.diff > 0 ? 'text-success' : 'text-destructive'} />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{item.name}</span>
-                  <span className="font-mono text-xs text-muted-foreground">{item.sku}</span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  账面: {item.bookQty} · 实盘: {item.actualQty} · 差异: <span className={`font-medium ${item.diff > 0 ? 'text-success' : 'text-destructive'}`}>{item.diff > 0 ? '+' : ''}{item.diff}</span>
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">库位: {item.location}</p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => handleConfirmDiff(item)} className="px-3 py-1.5 text-xs rounded-md border hover:bg-muted transition">确认盘亏</button>
-                <button onClick={() => toast({ title: '申请复核', description: '已提交复核申请' })} className="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:opacity-90 transition">申请复核</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+        {/* Plan lists */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="搜索盘点单号范围或类型..."
+              className="w-full pl-9 pr-4 py-2 border rounded-md text-sm outline-none focus:ring-1 focus:ring-primary/40 text-background-foreground scroll-m-0 hover:bg-muted/50 transition-colors"
+            />
+          </div>
 
-      {/* Task Detail Dialog */}
-      {selectedTask && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedTask(null)}>
-          <div className="bg-card rounded-lg border shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-5 border-b sticky top-0 bg-card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold">{selectedTask.name}</h2>
-                  <p className="text-sm text-muted-foreground">{selectedTask.id} · {selectedTask.zone}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">进度</p>
-                    <p className="font-bold">{selectedTask.progress}%</p>
+          <div className="space-y-3">
+            {mockCountPlans.map((plan) => (
+              <div key={plan.id} className="bg-card border rounded-lg p-5 hover:border-primary/50 cursor-pointer transition-colors shadow-sm">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-bold">{plan.id}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium">{plan.type}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">盘点范围: {plan.scope}</p>
                   </div>
-                  <div className="w-24 bg-muted rounded-full h-2">
-                    <div className="bg-primary h-2 rounded-full" style={{ width: `${selectedTask.progress}%` }} />
-                  </div>
+                  <StatusBadge status={plan.status === 'completed' ? 'active' : plan.status === 'pending' ? 'warning' : 'pending'} />
                 </div>
-              </div>
-            </div>
-            <div className="p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="relative flex-1">
-                  <input placeholder="扫描SKU或库位..." className="w-full pl-10 pr-4 py-2 rounded-md bg-muted text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-                  <ScanLine size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                </div>
-                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:opacity-90 transition">扫描</button>
-              </div>
-              <div className="space-y-3">
-                {stocktakingDetails.map(item => (
-                  <div key={item.sku} className="p-4 rounded-lg border hover:border-primary/30 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{item.sku} · {item.location}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm">账面: <span className="font-mono">{item.bookQty}</span></p>
-                        <input type="number" placeholder="实盘数" className="w-20 px-2 py-1 rounded bg-muted text-sm text-right mt-1 outline-none focus:ring-1 focus:ring-primary/30" defaultValue={item.bookQty} />
-                      </div>
+
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center text-xs mb-1">
+                      <span className="text-muted-foreground">点件进度</span>
+                      <span className="font-bold">{plan.progress}%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div className="bg-primary h-2 rounded-full" style={{ width: `${plan.progress}%` }} />
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-            <div className="p-5 border-t flex justify-between">
-              <button onClick={() => setSelectedTask(null)} className="px-4 py-2 text-sm rounded-md border hover:bg-muted transition">暂不保存</button>
-              <button onClick={() => { toast({ title: '保存成功', description: '盘点数据已保存' }); setSelectedTask(null); }} className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 transition">保存盘点数据</button>
-            </div>
-          </div>
-        </div>
-      )}
+                  <div className="text-right">
+                    <span className="text-xs text-muted-foreground">包含商品</span>
+                    <p className="font-bold">{plan.items} 档</p>
+                  </div>
+                </div>
 
-      {/* New Task Dialog */}
-      {showNewDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNewDialog(false)}>
-          <div className="bg-card rounded-lg border shadow-xl w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
-            <div className="p-5 border-b">
-              <h2 className="text-lg font-bold">新建盘点任务</h2>
-            </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="text-sm font-medium block mb-1.5">任务名称</label>
-                <input type="text" placeholder="请输入任务名称" className="w-full px-3 py-2 rounded-md bg-muted text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                <div className="flex items-center justify-between pt-4 border-t text-sm">
+                  <div className="flex items-center gap-4 text-xs">
+                    {plan.variance > 0 ? (
+                      <span className="flex items-center gap-1 text-destructive font-semibold">
+                        <AlertTriangle size={14} /> 差异 {plan.variance} 笔
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-success font-medium">
+                        <CheckCircle size={14} /> 暂无差异
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {plan.status === 'active' && <button onClick={() => handleStartCount(plan.id)} className="text-xs text-primary hover:underline">继续盘点</button>}
+                    {plan.status === 'pending' && <button onClick={() => handleStartCount(plan.id)} className="text-xs px-3 py-1 bg-primary text-white rounded hover:bg-primary/90 transition text-[11px]">启动并分派</button>}
+                    {plan.status === 'completed' && <button className="text-xs text-muted-foreground hover:underline">查看差异报告</button>}
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium block mb-1.5">盘点类型</label>
-                <select className="w-full px-3 py-2 rounded-md bg-muted text-sm outline-none focus:ring-2 focus:ring-primary/30">
-                  <option value="cycle">周期盘点</option>
-                  <option value="dynamic">动态盘点</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1.5">盘点库区</label>
-                <select className="w-full px-3 py-2 rounded-md bg-muted text-sm outline-none focus:ring-2 focus:ring-primary/30">
-                  <option>存储区A</option>
-                  <option>拣货区B</option>
-                  <option>展位区C</option>
-                  <option>全仓盘点</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1.5">备注</label>
-                <textarea placeholder="可选填写备注信息" className="w-full px-3 py-2 rounded-md bg-muted text-sm outline-none focus:ring-2 focus:ring-primary/30 h-20 resize-none" />
-              </div>
-            </div>
-            <div className="p-5 border-t flex justify-end gap-2">
-              <button onClick={() => setShowNewDialog(false)} className="px-4 py-2 text-sm rounded-md border hover:bg-muted transition">取消</button>
-              <button onClick={() => { toast({ title: '任务已创建', description: '盘点任务已提交待执行' }); setShowNewDialog(false); }} className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 transition">创建任务</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Dynamic logs */}
+        <div className="lg:col-span-1 space-y-4">
+          <div className="bg-card border rounded-lg p-5 shadow-sm h-full flex flex-col">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <ClipboardList size={18} className="text-primary" />
+              实操动作日志
+            </h3>
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+              {mockLogs.map((log) => (
+                <div key={log.id} className="p-3 border rounded-md hover:bg-muted/30 transition-colors">
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="text-xs font-semibold">{log.operator}</span>
+                    <span className="text-[10px] text-muted-foreground">{log.date}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground">{log.action} · {log.target}</span>
+                    <span className={`font-bold ${log.result.startsWith('-') ? 'text-destructive' : log.result === '无差异' ? 'text-success' : ''}`}>{log.result}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

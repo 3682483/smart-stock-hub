@@ -20,6 +20,7 @@ import TransferPage from "@/pages/TransferPage";
 import StocktakingPage from "@/pages/StocktakingPage";
 import InterceptPage from "@/pages/InterceptPage";
 import ReturnsPage from "@/pages/ReturnsPage";
+import MerchantPage from "@/pages/MerchantPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/locations" element={<LocationsPage />} />
             <Route path="/suppliers" element={<SuppliersPage />} />
+            <Route path="/merchant" element={<MerchantPage />} />
             <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
             <Route path="/inbound" element={<InboundPage />} />
             <Route path="/sales-orders" element={<SalesOrdersPage />} />
