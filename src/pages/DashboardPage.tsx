@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Package, Truck, ClipboardList, AlertTriangle, BarChart3, ArrowUpFromLine, ScanLine, Timer, TrendingUp, TrendingDown, Eye, Bell, MapPin, Wifi, Battery, Signal } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Package, Truck, ClipboardList, AlertTriangle, BarChart3, ArrowUpFromLine, ScanLine, Timer, TrendingUp, TrendingDown, Eye, Bell, MapPin, Wifi, Battery, Signal, Monitor, Download, RefreshCw, Search, Activity, Plus, Minus, Camera, Flashlight, Volume2, Keyboard, CheckCircle, AlertCircle } from 'lucide-react';
 import StatCard from '@/components/ui/StatCard';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { dashboardStats, operationLogs, skuAggregations, inventoryAlerts, salesOrders, locations, products } from '@/data/mockData';
@@ -72,6 +72,42 @@ const warehouseVisualization = [
   { id: 'A10', code: 'C-03', zone: '展位区C', type: 'exhibition', status: 'maintenance', fill: 0 },
 ];
 
+// 仓库数字孪生监控中心数据
+const twinStats = [
+  { label: '当日作业', value: 128, unit: '单', icon: <ClipboardList size={16} />, color: 'primary' },
+  { label: '出库数', value: 86, unit: '单', icon: <Truck size={16} />, color: 'success' },
+  { label: '收货数', value: 42, unit: '单', icon: <Package size={16} />, color: 'blue' },
+  { label: '移库数', value: 15, unit: '次', icon: <ArrowUpFromLine size={16} />, color: 'orange' },
+];
+
+// 楼层数据
+const floorData = [
+  { floor: '3F', name: '退货区', items: 12, color: 'from-red-100 to-red-50', borderColor: 'border-red-200', textColor: 'text-red-700', bgColor: 'bg-red-500' },
+  { floor: '2F', name: '发货区', items: 28, color: 'from-green-100 to-green-50', borderColor: 'border-green-200', textColor: 'text-green-700', bgColor: 'bg-green-500' },
+  { floor: '1F', name: '收货区', items: 18, color: 'from-blue-100 to-blue-50', borderColor: 'border-blue-200', textColor: 'text-blue-700', bgColor: 'bg-blue-500' },
+];
+
+// 实时动态线数据
+const realtimeActivityData = [
+  { time: '10:32:15', action: '入库上架', operator: '张三', detail: 'SKU-10001 × 500 → A-01-03', status: 'success' },
+  { time: '10:31:48', action: '波次拣货', operator: '李四', detail: '波次#W005 完成 15单', status: 'success' },
+  { time: '10:30:22', action: '移库作业', operator: '王五', detail: 'B-02-01 → A-03-05', status: 'info' },
+  { time: '10:29:05', action: '打包发货', operator: '赵六', detail: '快递 #SF1234567890', status: 'success' },
+  { time: '10:27:33', action: '出库扫描', operator: '张三', detail: '拦截订单 DY-20250324-003', status: 'warning' },
+  { time: '10:25:18', action: '退货入库', operator: '李四', detail: 'RMA-20250324-001 → C-01', status: 'info' },
+  { time: '10:23:42', action: '盘点开始', operator: '系统', detail: 'A区周期盘点任务已创建', status: 'muted' },
+];
+
+// PDA模拟器设备
+const pdaSimDevice = {
+  id: 'PDA-001',
+  operator: '管理员',
+  status: 'online',
+  battery: 92,
+  signal: 'excellent',
+  connection: 'WIFI',
+};
+
 // 拣货效能趋势
 const pickEfficiencyData = [
   { time: '06:00', efficiency: 92 },
@@ -94,7 +130,30 @@ const pdaDevices = [
 export default function DashboardPage() {
   const [activeView, setActiveView] = useState('overview');
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
+  const [pdaScanMode, setPdaScanMode] = useState<'sku' | 'location' | 'express'>('sku');
+  const [pdaScanValue, setPdaScanValue] = useState('');
+  const [pdaShowResult, setPdaShowResult] = useState(false);
+  const [pdaSound, setPdaSound] = useState(true);
+  const [pdaFlash, setPdaFlash] = useState(false);
+  const [pdaCamera, setPdaCamera] = useState(false);
+  const pdaInputRef = useRef<HTMLInputElement>(null);
+  const [activityLogs, setActivityLogs] = useState(realtimeActivityData);
   const { toast } = useToast();
+
+  // 实时更新动态
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newLog = {
+        time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
+        action: ['入库上架', '波次拣货', '移库作业', '打包发货'][Math.floor(Math.random() * 4)],
+        operator: ['张三', '李四', '王五', '赵六'][Math.floor(Math.random() * 4)],
+        detail: `SKU-${10000 + Math.floor(Math.random() * 100)} × ${10 + Math.floor(Math.random() * 90)} → A-0${1 + Math.floor(Math.random() * 3)}-${String(Math.floor(Math.random() * 20) + 1).padStart(2, '0')}`,
+        status: ['success', 'info'][Math.floor(Math.random() * 2)],
+      };
+      setActivityLogs(prev => [newLog, ...prev.slice(0, 6)]);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleRefresh = () => {
     toast({ title: '数据已刷新', description: '实时数据更新成功' });
@@ -104,6 +163,22 @@ export default function DashboardPage() {
     setSelectedZone(zone === selectedZone ? null : zone);
     toast({ title: `查看${zone}`, description: '跳转至库位管理页面' });
   };
+
+  // PDA模拟器扫码处理
+  const handlePdaScan = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pdaScanValue.trim()) return;
+    setPdaShowResult(true);
+    toast({ title: '扫描成功', description: `${pdaScanMode === 'sku' ? 'SKU' : pdaScanMode === 'location' ? '库位' : '快递'}: ${pdaScanValue}` });
+    setTimeout(() => {
+      setPdaShowResult(false);
+      setPdaScanValue('');
+    }, 1500);
+  };
+
+  useEffect(() => {
+    pdaInputRef.current?.focus();
+  }, [pdaScanMode]);
 
   return (
     <div>
@@ -297,101 +372,182 @@ export default function DashboardPage() {
 
       {/* 数字孪生/平面图 */}
       {activeView === 'digital_twin' && (
-        <div className="space-y-6">
-          {/* 3D风格仓库平面图 */}
-          <div className="bg-card rounded-lg border p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <MapPin size={20} className="text-primary" />
-                仓库数字孪生可视化
-              </h3>
-              <div className="flex gap-4 text-xs">
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ background: 'hsl(var(--stat-green))' }} />空闲</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ background: 'hsl(var(--stat-blue))' }} />占用</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ background: 'hsl(var(--stat-orange))' }} />预警</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ background: 'hsl(var(--muted))' }} />维护</span>
+        <div className="space-y-4">
+          {/* 顶部标题栏 */}
+          <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Monitor size={24} className="text-primary" />
+              <h2 className="text-lg font-bold text-white">仓库数字孪生监控中心</h2>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-2 text-xs text-slate-400">
+                <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                实时监控中 · {new Date().toLocaleTimeString('zh-CN')}
+              </span>
+              <button onClick={handleRefresh} className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-slate-700 text-white hover:bg-slate-600 transition">
+                <RefreshCw size={14} /> 刷新
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            {/* 左侧统计数据 */}
+            <div className="space-y-4">
+              {twinStats.map((stat, idx) => (
+                <div key={idx} className="bg-card rounded-lg border p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`p-1.5 rounded-md ${stat.color === 'primary' ? 'bg-primary/10 text-primary' : stat.color === 'success' ? 'bg-success/10 text-success' : stat.color === 'blue' ? 'bg-blue-500/10 text-blue-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                      {stat.icon}
+                    </div>
+                    <span className="text-sm text-muted-foreground">{stat.label}</span>
+                  </div>
+                  <p className="text-2xl font-bold">{stat.value} <span className="text-sm font-normal text-muted-foreground">{stat.unit}</span></p>
+                </div>
+              ))}
+
+              {/* 快捷操作 */}
+              <div className="bg-card rounded-lg border p-4">
+                <h3 className="font-semibold mb-3 text-sm">快捷操作</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => toast({ title: '开始盘点', description: '已创建周期盘点任务' })} className="px-3 py-2 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition">
+                    <ScanLine size={14} className="mx-auto mb-1" /> 盘点
+                  </button>
+                  <button onClick={() => toast({ title: '移库作业', description: '正在跳转到移库页面' })} className="px-3 py-2 text-xs rounded-md bg-success/10 text-success hover:bg-success/20 transition">
+                    <ArrowUpFromLine size={14} className="mx-auto mb-1" /> 移库
+                  </button>
+                  <button onClick={() => toast({ title: '打包发货', description: '正在跳转到打包页面' })} className="px-3 py-2 text-xs rounded-md bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 transition">
+                    <Package size={14} className="mx-auto mb-1" /> 打包
+                  </button>
+                  <button onClick={() => toast({ title: '拦截处理', description: '正在跳转到拦截页面' })} className="px-3 py-2 text-xs rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition">
+                    <AlertTriangle size={14} className="mx-auto mb-1" /> 拦截
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* 仓库平面图 - 3D效果 */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* 存储区A */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border-2 border-blue-200 shadow-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-bold text-blue-800 flex items-center gap-2">
-                    <Package size={16} /> 存储区A
-                  </h4>
-                  <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">84% 使用率</span>
+            {/* 中间仓库平面图 */}
+            <div className="lg:col-span-2 bg-gradient-to-br from-slate-100 to-slate-50 rounded-xl p-5 border-2 border-slate-200 shadow-inner">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                  <MapPin size={16} /> 仓库平面图
+                </h3>
+                <div className="flex gap-3 text-xs">
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500" /> 收货区</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500" /> 发货区</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-500" /> 退货区</span>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {warehouseVisualization.filter(v => v.zone === '存储区A').map((loc, i) => (
-                    <div
-                      key={loc.id}
-                      onClick={() => handleZoneClick('存储区A')}
-                      className={`aspect-square rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all hover:scale-105 shadow-md ${
-                        loc.status === 'occupied' ? 'bg-blue-500 text-white' :
-                        loc.status === 'available' ? 'bg-green-100 border-2 border-green-300 text-green-700' :
-                        'bg-gray-100 border-2 border-gray-200 text-gray-400'
-                      }`}
-                    >
-                      <span className="text-[10px] font-bold">{loc.code}</span>
-                      {loc.status === 'occupied' && <span className="text-[8px] opacity-80">{loc.fill}%</span>}
+              </div>
+
+              {/* 楼层可视化 */}
+              <div className="space-y-3">
+                {floorData.map((floor, idx) => (
+                  <div key={idx} className={`bg-gradient-to-br ${floor.color} rounded-lg p-3 border ${floor.borderColor}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 ${floor.bgColor} rounded-lg flex items-center justify-center text-white font-bold text-sm`}>
+                          {floor.floor}
+                        </div>
+                        <span className={`font-bold ${floor.textColor}`}>{floor.name}</span>
+                      </div>
+                      <span className={`text-xs ${floor.textColor} bg-white/50 px-2 py-0.5 rounded-full`}>
+                        {floor.items} 个作业
+                      </span>
+                    </div>
+                    {/* 模拟货架格子 */}
+                    <div className="grid grid-cols-6 gap-1.5">
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className={`aspect-square rounded ${Math.random() > 0.3 ? `${floor.bgColor} opacity-60` : 'bg-white/50 border border-slate-200'}`} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 右侧功能栏 */}
+            <div className="space-y-4">
+              {/* 任务动态 */}
+              <div className="bg-card rounded-lg border p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm">
+                  <Activity size={14} className="text-primary" /> 任务动态
+                </h3>
+                <div className="space-y-2">
+                  {activityLogs.slice(0, 4).map((log, idx) => (
+                    <div key={idx} className="flex items-start gap-2 text-xs">
+                      <span className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${log.status === 'success' ? 'bg-success' : log.status === 'warning' ? 'bg-warning' : 'bg-muted-foreground'}`} />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">{log.action}</p>
+                        <p className="text-muted-foreground truncate">{log.detail}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* 拣货区B */}
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border-2 border-green-200 shadow-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-bold text-green-800 flex items-center gap-2">
-                    <ArrowUpFromLine size={16} /> 拣货区B
-                  </h4>
-                  <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full">70% 使用率</span>
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {warehouseVisualization.filter(v => v.zone === '拣货区B').map((loc) => (
-                    <div
-                      key={loc.id}
-                      onClick={() => handleZoneClick('拣货区B')}
-                      className={`aspect-square rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all hover:scale-105 shadow-md ${
-                        loc.status === 'occupied' ? 'bg-green-500 text-white' :
-                        loc.status === 'available' ? 'bg-green-100 border-2 border-green-300 text-green-700' :
-                        'bg-gray-100 border-2 border-gray-200 text-gray-400'
-                      }`}
-                    >
-                      <span className="text-[10px] font-bold">{loc.code}</span>
-                      {loc.status === 'occupied' && <span className="text-[8px] opacity-80">{loc.fill}%</span>}
+              {/* 库位实时状态 */}
+              <div className="bg-card rounded-lg border p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm">
+                  <MapPin size={14} className="text-primary" /> 库位状态
+                </h3>
+                <div className="space-y-2">
+                  {[
+                    { zone: 'A-01区', status: '正常', count: 24, color: 'bg-success' },
+                    { zone: 'B-02区', status: '繁忙', count: 18, color: 'bg-warning' },
+                    { zone: 'C-03区', status: '空闲', count: 8, color: 'bg-muted' },
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs">
+                      <span className="font-mono">{item.zone}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${item.color}`} />
+                        <span className="text-muted-foreground">{item.status}</span>
+                        <span className="font-medium">{item.count}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* 展位区C */}
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border-2 border-purple-200 shadow-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-bold text-purple-800 flex items-center gap-2">
-                    <Eye size={16} /> 展位区C
-                  </h4>
-                  <span className="text-xs bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">60% 使用率</span>
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {warehouseVisualization.filter(v => v.zone === '展位区C').map((loc) => (
-                    <div
-                      key={loc.id}
-                      onClick={() => handleZoneClick('展位区C')}
-                      className={`aspect-square rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all hover:scale-105 shadow-md ${
-                        loc.status === 'occupied' ? 'bg-purple-500 text-white' :
-                        loc.status === 'available' ? 'bg-purple-100 border-2 border-purple-300 text-purple-700' :
-                        'bg-gray-100 border-2 border-gray-200 text-gray-400'
-                      }`}
-                    >
-                      <span className="text-[10px] font-bold">{loc.code}</span>
-                      {loc.status === 'occupied' && <span className="text-[8px] opacity-80">{loc.fill}%</span>}
+              {/* 异常告警 */}
+              <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle size={14} /> 异常告警
+                </h3>
+                <div className="space-y-2">
+                  {[
+                    { type: '库存不足', sku: 'SKU-10005', desc: '仅剩15件' },
+                    { type: '库位已满', sku: 'A-02-08', desc: '无法上架' },
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-start gap-2 text-xs">
+                      <AlertTriangle size={12} className="text-destructive mt-0.5" />
+                      <div>
+                        <p className="font-medium">{item.type}</p>
+                        <p className="text-muted-foreground">{item.sku} - {item.desc}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* 实时状态动态线 */}
+          <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-4 overflow-hidden">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-white font-semibold flex items-center gap-2 text-sm">
+                <Activity size={14} className="text-primary animate-pulse" /> 实时状态动态线
+              </h3>
+              <span className="text-xs text-slate-400">自动滚动 · 5秒更新</span>
+            </div>
+            <div className="flex gap-6 overflow-x-auto pb-2 scrollbar-hide">
+              {activityLogs.map((log, idx) => (
+                <div key={idx} className="flex items-center gap-3 shrink-0 bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700">
+                  <span className="text-xs font-mono text-slate-500">{log.time}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${log.status === 'success' ? 'bg-success' : log.status === 'warning' ? 'bg-warning' : 'bg-blue-400'}`} />
+                  <span className="text-xs text-white">{log.operator}</span>
+                  <span className="text-xs text-primary">{log.action}</span>
+                  <span className="text-xs text-slate-400 max-w-[120px] truncate">{log.detail}</span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -594,67 +750,205 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* PDA设备列表 */}
-          <div className="bg-card rounded-lg border">
-            <div className="p-4 border-b">
-              <h3 className="font-semibold">PDA设备状态</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-              {pdaDevices.map(pda => (
-                <div key={pda.id} className={`p-4 rounded-lg border ${pda.status === 'online' ? 'bg-success/5 border-success/20' : 'bg-muted/50 border-muted'}`}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-full ${pda.status === 'online' ? 'bg-success/10' : 'bg-muted'}`}>
-                        <Wifi size={20} className={pda.status === 'online' ? 'text-success' : 'text-muted-foreground'} />
-                      </div>
-                      <div>
-                        <p className="font-medium">{pda.id}</p>
-                        <p className="text-xs text-muted-foreground">操作员: {pda.operator}</p>
-                      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* PDA模拟器 */}
+            <div className="lg:col-span-1">
+              <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-5 shadow-2xl border-4 border-slate-700">
+                {/* PDA顶部状态栏 */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Camera size={18} className={pdaCamera ? 'text-primary' : 'text-slate-500'} />
+                    <Flashlight size={18} className={pdaFlash ? 'text-warning' : 'text-slate-500'} />
+                  </div>
+                  <div className="text-center">
+                    <span className="text-[10px] text-slate-400">WMS</span>
+                    <p className="text-sm font-bold text-white">手持终端</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setPdaCamera(!pdaCamera)} className={`p-1.5 rounded ${pdaCamera ? 'bg-primary' : 'bg-slate-700'}`}>
+                      <Camera size={14} className="text-white" />
+                    </button>
+                    <button onClick={() => setPdaFlash(!pdaFlash)} className={`p-1.5 rounded ${pdaFlash ? 'bg-warning' : 'bg-slate-700'}`}>
+                      <Flashlight size={14} className="text-white" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 设备信息 */}
+                <div className="bg-slate-700/50 rounded-lg p-3 mb-4">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${pdaSimDevice.status === 'online' ? 'bg-success animate-pulse' : 'bg-muted'}`} />
+                      <span className="text-white font-medium">{pdaSimDevice.id}</span>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${pda.status === 'online' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
-                      {pda.status === 'online' ? '在线' : '离线'}
+                    <span className="text-slate-400">操作员: {pdaSimDevice.operator}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-2 text-xs text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <Wifi size={12} className="text-success" /> {pdaSimDevice.connection}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Battery size={12} className={pdaSimDevice.battery > 50 ? 'text-success' : 'text-warning'} /> {pdaSimDevice.battery}%
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Signal size={12} className="text-success" /> 信号{pdaSimDevice.signal}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <Battery size={14} className={pda.battery > 50 ? 'text-success' : pda.battery > 20 ? 'text-warning' : 'text-destructive'} />
-                        {pda.battery}%
-                      </span>
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <Signal size={14} className={pda.signal === 'good' ? 'text-success' : 'text-warning'} />
-                        {pda.signal === 'good' ? '信号强' : '信号弱'}
-                      </span>
+                </div>
+
+                {/* 扫描模式切换 */}
+                <div className="flex gap-1 mb-4 bg-slate-700 rounded-lg p-1">
+                  {[
+                    { key: 'sku', label: 'SKU' },
+                    { key: 'location', label: '库位' },
+                    { key: 'express', label: '快递' },
+                  ].map(mode => (
+                    <button
+                      key={mode.key}
+                      onClick={() => setPdaScanMode(mode.key as typeof pdaScanMode)}
+                      className={`flex-1 py-2 text-xs font-medium rounded-md transition ${pdaScanMode === mode.key ? 'bg-primary text-white' : 'text-slate-400 hover:text-white'}`}
+                    >
+                      {mode.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 扫描区域 */}
+                <div className="relative mb-4">
+                  <div className={`aspect-[4/3] rounded-xl border-2 ${pdaShowResult ? 'border-success bg-success/10' : 'border-dashed border-slate-600'} flex items-center justify-center relative overflow-hidden`}>
+                    {pdaCamera && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-transparent" />
+                    )}
+                    <div className="text-center">
+                      {pdaShowResult ? (
+                        <>
+                          <CheckCircle size={48} className="text-success mx-auto mb-2" />
+                          <p className="text-white font-medium">扫描成功</p>
+                        </>
+                      ) : (
+                        <>
+                          <ScanLine size={48} className="text-slate-500 mx-auto mb-2" />
+                          <p className="text-slate-500 text-sm">对准{pdaScanMode === 'sku' ? '商品条码' : pdaScanMode === 'location' ? '库位标签' : '快递单号'}</p>
+                        </>
+                      )}
+                      <div className={`absolute left-2 right-2 h-0.5 bg-primary ${pdaShowResult ? 'hidden' : ''}`} style={{ animation: 'scan 2s ease-in-out infinite' }} />
                     </div>
-                    <span className="text-primary text-xs">{pda.currentTask}</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* PDA操作记录 */}
-          <div className="bg-card rounded-lg border">
-            <div className="p-4 border-b">
-              <h3 className="font-semibold">实时作业动态</h3>
-            </div>
-            <div className="p-4 space-y-3">
-              {[
-                { time: '10:32', operator: '张三', action: '入库上架', detail: 'SKU-10001 × 500 → A-01-03', type: 'success' },
-                { time: '10:28', operator: '李四', action: '波次拣货', detail: '波次#W005 完成 15单/32件', type: 'success' },
-                { time: '10:25', operator: '王五', action: 'PDA扫描', detail: '扫描调拨单 TR-002', type: 'info' },
-                { time: '10:20', operator: '张三', action: '入库上架', detail: 'SKU-10007 × 200 → A-01-05', type: 'success' },
-                { time: '10:15', operator: '系统', action: '自动拦截', detail: '订单DY-20250324-66003 已取消', type: 'warning' },
-              ].map((log, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
-                  <span className="text-xs font-mono text-muted-foreground w-12">{log.time}</span>
-                  <span className={`w-2 h-2 rounded-full ${log.type === 'success' ? 'bg-success' : log.type === 'warning' ? 'bg-warning' : 'bg-primary'}`} />
-                  <span className="font-medium text-sm w-16">{log.operator}</span>
-                  <span className="text-sm text-primary">{log.action}</span>
-                  <span className="text-sm text-muted-foreground flex-1 truncate">{log.detail}</span>
+                {/* 输入框 */}
+                <form onSubmit={handlePdaScan} className="mb-4">
+                  <div className="relative">
+                    <input
+                      ref={pdaInputRef}
+                      type="text"
+                      value={pdaScanValue}
+                      onChange={(e) => setPdaScanValue(e.target.value)}
+                      placeholder={pdaScanMode === 'sku' ? '输入或扫描SKU...' : pdaScanMode === 'location' ? '输入或扫描库位...' : '输入或扫描快递号...'}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-700 text-white text-center font-mono text-lg outline-none focus:ring-2 focus:ring-primary placeholder-slate-500"
+                    />
+                    <Keyboard size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  </div>
+                  <button type="submit" className="w-full mt-3 py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition shadow-lg">
+                    扫描
+                  </button>
+                </form>
+
+                {/* 快捷操作 */}
+                <div className="grid grid-cols-3 gap-2">
+                  <button onClick={() => setPdaSound(!pdaSound)} className={`py-2 rounded-lg text-white text-xs transition ${pdaSound ? 'bg-primary' : 'bg-slate-700'}`}>
+                    <Volume2 size={14} className="mx-auto mb-1" />
+                    声音
+                  </button>
+                  <button className="py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white text-xs transition">
+                    历史
+                  </button>
+                  <button className="py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white text-xs transition">
+                    帮助
+                  </button>
                 </div>
-              ))}
+              </div>
+            </div>
+
+            {/* 右侧：设备状态和操作记录 */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* PDA设备列表 */}
+              <div className="bg-card rounded-lg border p-5">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <Monitor size={18} className="text-primary" /> PDA设备状态
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {pdaDevices.map(pda => (
+                    <div key={pda.id} className={`p-4 rounded-lg border ${pda.status === 'online' ? 'bg-success/5 border-success/20' : 'bg-muted/50 border-muted'}`}>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-full ${pda.status === 'online' ? 'bg-success/10' : 'bg-muted'}`}>
+                            <Wifi size={20} className={pda.status === 'online' ? 'text-success' : 'text-muted-foreground'} />
+                          </div>
+                          <div>
+                            <p className="font-medium">{pda.id}</p>
+                            <p className="text-xs text-muted-foreground">操作员: {pda.operator}</p>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-xs ${pda.status === 'online' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
+                          {pda.status === 'online' ? '在线' : '离线'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1">
+                            <Battery size={14} className={pda.battery > 50 ? 'text-success' : pda.battery > 20 ? 'text-warning' : 'text-destructive'} />
+                            {pda.battery}%
+                          </span>
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Signal size={14} className={pda.signal === 'good' ? 'text-success' : 'text-warning'} />
+                            {pda.signal === 'good' ? '信号强' : '信号弱'}
+                          </span>
+                        </div>
+                        <span className="text-primary text-xs">{pda.currentTask}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 实时作业动态 */}
+              <div className="bg-card rounded-lg border p-5">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <Activity size={18} className="text-primary animate-pulse" /> 实时作业动态
+                </h3>
+                <div className="space-y-3">
+                  {activityLogs.map((log, idx) => (
+                    <div key={idx} className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
+                      <span className="text-xs font-mono text-muted-foreground w-16">{log.time}</span>
+                      <span className={`w-2 h-2 rounded-full ${log.status === 'success' ? 'bg-success' : log.status === 'warning' ? 'bg-warning' : 'bg-primary'}`} />
+                      <span className="font-medium text-sm w-16">{log.operator}</span>
+                      <span className="text-sm text-primary">{log.action}</span>
+                      <span className="text-sm text-muted-foreground flex-1 truncate">{log.detail}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 设备统计 */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-card rounded-lg border p-4 text-center">
+                  <p className="text-2xl font-bold text-success">3</p>
+                  <p className="text-xs text-muted-foreground">在线设备</p>
+                </div>
+                <div className="bg-card rounded-lg border p-4 text-center">
+                  <p className="text-2xl font-bold text-muted-foreground">1</p>
+                  <p className="text-xs text-muted-foreground">离线设备</p>
+                </div>
+                <div className="bg-card rounded-lg border p-4 text-center">
+                  <p className="text-2xl font-bold text-primary">72%</p>
+                  <p className="text-xs text-muted-foreground">平均电量</p>
+                </div>
+                <div className="bg-card rounded-lg border p-4 text-center">
+                  <p className="text-2xl font-bold text-warning">12</p>
+                  <p className="text-xs text-muted-foreground">作业中</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
