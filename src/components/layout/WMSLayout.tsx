@@ -92,42 +92,47 @@ export default function WMSLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-2 px-2">
+        <nav className="flex-1 overflow-y-auto py-2 px-1">
           {navItems.map((item) => (
             <div key={item.label}>
               {item.children ? (
-                <>
+                <div className="mb-1">
                   <button
                     onClick={() => toggleGroup(item.label)}
-                    className="wms-sidebar-item w-full justify-between"
+                    className="w-full justify-between py-2 px-2 rounded-md text-sm font-medium transition-colors hover:bg-primary/10"
+                    style={{ color: 'hsl(var(--sidebar-fg))' }}
                   >
-                    <span className="flex items-center gap-3">
+                    <span className="flex items-center gap-2">
                       {item.icon}
-                      <span>{item.label}</span>
+                      <span className="text-xs">{item.label}</span>
                     </span>
-                    {expandedGroups.includes(item.label) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    {expandedGroups.includes(item.label) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                   </button>
                   {expandedGroups.includes(item.label) && (
-                    <div className="ml-4 border-l pl-2" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
+                    <div className="ml-3 mt-1 space-y-0.5">
                       {item.children.map((child) => (
                         <button
                           key={child.path}
                           onClick={() => navigate(child.path)}
-                          className={`wms-sidebar-item w-full text-left ${isActive(child.path) ? 'active' : ''}`}
+                          className={`w-full text-left py-1.5 px-2 rounded-md text-xs transition-colors ${isActive(child.path) ? 'bg-primary/20 text-primary font-medium' : 'hover:bg-muted'}`}
+                          style={{ color: isActive(child.path) ? 'hsl(var(--primary))' : 'hsl(var(--sidebar-fg))' }}
                         >
-                          <span className="text-sm">{child.label}</span>
+                          {child.label}
                         </button>
                       ))}
                     </div>
                   )}
-                </>
+                </div>
               ) : (
                 <button
                   onClick={() => navigate(item.path!)}
-                  className={`wms-sidebar-item w-full ${isActive(item.path!) ? 'active' : ''}`}
+                  className={`w-full py-2 px-2 rounded-md text-sm font-medium transition-colors mb-0.5 ${isActive(item.path!) ? 'bg-primary/20' : 'hover:bg-primary/10'}`}
+                  style={{ color: isActive(item.path!) ? 'hsl(var(--primary))' : 'hsl(var(--sidebar-fg))' }}
                 >
-                  {item.icon}
-                  <span>{item.label}</span>
+                  <span className="flex items-center gap-2">
+                    {item.icon}
+                    <span className="text-xs">{item.label}</span>
+                  </span>
                 </button>
               )}
             </div>
