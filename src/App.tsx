@@ -21,6 +21,9 @@ import StocktakingPage from "@/pages/StocktakingPage";
 import InterceptPage from "@/pages/InterceptPage";
 import ReturnsPage from "@/pages/ReturnsPage";
 import MerchantPage from "@/pages/MerchantPage";
+import MerchantApplyPage from "@/pages/MerchantApplyPage";
+import ProductApplyPage from "@/pages/ProductApplyPage";
+import AutoDevicePage from "@/pages/AutoDevicePage";
 import ExhibitPage from "@/pages/ExhibitPage";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -39,6 +42,8 @@ const App = () => (
             <Route path="/locations" element={<LocationsPage />} />
             <Route path="/suppliers" element={<SuppliersPage />} />
             <Route path="/merchant" element={<MerchantPage />} />
+            <Route path="/merchant-apply" element={<MerchantApplyPage />} />
+            <Route path="/product-apply" element={<ProductApplyPage />} />
             <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
             <Route path="/inbound" element={<InboundPage />} />
             <Route path="/sales-orders" element={<SalesOrdersPage />} />
@@ -49,6 +54,7 @@ const App = () => (
             <Route path="/stocktaking" element={<StocktakingPage />} />
             <Route path="/intercept" element={<InterceptPage />} />
             <Route path="/returns" element={<ReturnsPage />} />
+            <Route path="/auto-device" element={<AutoDevicePage />} />
             <Route path="/alerts" element={<InventoryPage />} />
             <Route path="/finance" element={<FinancePage />} />
             <Route path="/exhibit" element={<ExhibitPage />} />

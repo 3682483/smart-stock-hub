@@ -5,7 +5,7 @@ import {
   ShoppingCart, Truck, ClipboardList, BarChart3, Archive,
   ArrowDownToLine, ArrowUpFromLine, ScanLine, AlertTriangle,
   ChevronDown, ChevronRight, Menu, X, Bell, Search, DollarSign,
-  Store
+  Store, Camera, Monitor
 } from 'lucide-react';
 
 interface NavItem {
@@ -52,6 +52,7 @@ const navItems: NavItem[] = [
       { label: '库存监控', path: '/inventory' },
       { label: '移库/补货', path: '/transfer' },
       { label: '盘点管理', path: '/stocktaking' },
+      { label: '无感录入设备监控', path: '/auto-device' },
     ]
   },
   {
